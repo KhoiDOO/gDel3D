@@ -374,7 +374,8 @@ void GpuDel::expandTetraList( int newTetNum )
         if ( growNum > newTetNum ) 
             growNum = newTetNum; 
 
-        std::cout << "Expanding tetra to: " << growNum << std::endl;
+        if ( _params.verbose )
+            std::cout << "Expanding tetra to: " << growNum << std::endl;
 
         _tetVec.grow( growNum ); 
         _oppVec.grow( growNum ); 
