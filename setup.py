@@ -18,10 +18,17 @@ sources = [
     f"{src_dir}/GPU/ThrustWrapper.cu",
 ]
 
+# Sanitize TORCH_CUDA_ARCH_LIST to strip unsupported/invalid archs like '10.1'
+arch_list_env = os.environ.get("TORCH_CUDA_ARCH_LIST", "")
+if arch_list_env:
+    cleaned_archs = [a.strip() for a in arch_list_env.split(";") if a.strip() and a.strip() != "10.1"]
+    if cleaned_archs:
+        os.environ["TORCH_CUDA_ARCH_LIST"] = ";".join(cleaned_archs)
+    else:
+        os.environ["TORCH_CUDA_ARCH_LIST"] = "12.0"
+
 conda_prefix = os.environ.get("CONDA_PREFIX", sys.prefix)
 conda_gcc = os.path.join(conda_prefix, "bin", "x86_64-conda-linux-gnu-gcc")
-if not os.path.exists(conda_gcc):
-    conda_gcc = "/home/koi/anaconda3/envs/geocutool/bin/x86_64-conda-linux-gnu-gcc"
 
 nvcc_args = [
     "-O3",
@@ -40,6 +47,13 @@ nvcc_args = [
 if os.path.exists(conda_gcc):
     nvcc_args.extend(["-ccbin", conda_gcc])
 
+# Auto-detect Blackwell architecture (compute capability 12.0)
+import torch
+if torch.cuda.is_available():
+    cap = torch.cuda.get_device_capability(0)
+    if cap == (12, 0):
+        nvcc_args.append("-gencode=arch=compute_120,code=sm_120")
+
 cxx_args = [
     "-O3",
     "-DNDEBUG",
@@ -56,16 +70,13 @@ additional_includes = [
     os.path.join(conda_prefix, "targets", "x86_64-linux", "include"),
     os.path.join(conda_prefix, "include"),
     os.path.join(conda_prefix, "lib", f"python{sys.version_info.major}.{sys.version_info.minor}", "site-packages", "nvidia", "cuda_runtime", "include"),
-    "/home/koi/anaconda3/envs/geocutool/targets/x86_64-linux/include",
-    "/home/koi/anaconda3/envs/geocutool/include",
-    "/home/koi/anaconda3/envs/geocutool/lib/python3.10/site-packages/nvidia/cuda_runtime/include",
 ]
 additional_includes = [p for p in additional_includes if os.path.exists(p)]
 all_includes = list(set(cuda_include_dirs + additional_includes))
 
 setup(
     name="gdel3d_cuda",
-    version="0.1.0",
+    version="0.2.0",
     description="Python binding for gDel3D GPU 3D Delaunay Tetrahedralization",
     author="KhoiDOO & Antigravity",
     packages=find_packages(),
