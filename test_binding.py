@@ -60,7 +60,7 @@ def test_delaunay(num_points=1000, seed=42):
 
 if __name__ == "__main__":
     all_passed = True
-    for N in [100, 500, 1000, 2000, 5000]:
+    for N in [100, 500, 1000, 2000, 5000, 10000]:
         if not test_delaunay(num_points=N, seed=42):
             all_passed = False
             
