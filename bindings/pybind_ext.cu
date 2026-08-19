@@ -1,8 +1,23 @@
+/**
+ * @file pybind_ext.cu
+ * @brief PyTorch C++ CUDA extension bindings for gDel3D GPU 3D Delaunay Tetrahedralization.
+ */
+
 #include <torch/extension.h>
 #include <vector>
 #include <cstring>
 #include "GpuDelaunay.h"
 
+/**
+ * @brief Computes 3D Delaunay tetrahedralization for a set of 3D points.
+ * 
+ * @details Converts input PyTorch tensor coordinates into gDel3D point structures,
+ * dispatches the parallel GPU Delaunay point insertion and flipping engine,
+ * and filters out infinite bounding vertices and inactive (dead) tetrahedra.
+ * 
+ * @param[in] points Tensor of shape (N, 3) with float32 or float64 dtype.
+ * @return torch::Tensor Output tensor of shape (M, 4) with int64 dtype containing valid tetrahedra indices.
+ */
 torch::Tensor tetrahedralize_cuda(const torch::Tensor& points) {
     TORCH_CHECK(points.dim() == 2 && points.size(1) == 3, "points must be an N x 3 tensor");
     TORCH_CHECK(points.size(0) >= 4, "Need at least 4 points for tetrahedralization");
@@ -41,7 +56,8 @@ torch::Tensor tetrahedralize_cuda(const torch::Tensor& points) {
         int num_raw_tets = output.tetVec.size();
         for (int i = 0; i < num_raw_tets; ++i) {
             const Tet& tet = output.tetVec[i];
-            if (tet._v[0] < num_points && tet._v[1] < num_points && 
+            if (isTetAlive(output.tetInfoVec[i]) &&
+                tet._v[0] < num_points && tet._v[1] < num_points && 
                 tet._v[2] < num_points && tet._v[3] < num_points) {
                 valid_tets.push_back(static_cast<int64_t>(tet._v[0]));
                 valid_tets.push_back(static_cast<int64_t>(tet._v[1]));
@@ -60,5 +76,41 @@ torch::Tensor tetrahedralize_cuda(const torch::Tensor& points) {
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-    m.def("tetrahedralize_cuda", &tetrahedralize_cuda, "Compute 3D Delaunay tetrahedralization on CUDA using gDel3D");
+    m.doc() = "PyTorch CUDA extension bindings for gDel3D GPU 3D Delaunay Tetrahedralization.";
+
+    m.def(
+        "tetrahedralize_cuda",
+        &tetrahedralize_cuda,
+        R"pbdoc(
+        Compute exact 3D Delaunay tetrahedralization on GPU using gDel3D.
+
+        Given a 2D tensor of 3D point coordinates, computes the 3D Delaunay 
+        tetrahedralization using GPU-accelerated point insertion, bistellar 
+        flipping, and host CPU star splaying post-processing for topological 
+        degeneracies.
+
+        Args:
+            points (torch.Tensor): Coordinates tensor of shape `(N, 3)` with 
+                dtype `torch.float32` or `torch.float64` on CPU or CUDA device. 
+                Must contain at least 4 non-coplanar points.
+
+        Returns:
+            torch.Tensor: Tetrahedra vertex indices tensor of shape `(M, 4)` 
+                with dtype `torch.int64` on the same device as input points. 
+                Each row `[v0, v1, v2, v3]` represents a valid Delaunay 3D 
+                tetrahedron indexing into the input `points` tensor.
+
+        Raises:
+            ValueError: If `points` is not a 2D tensor of shape `(N, 3)` or 
+                has fewer than 4 points, or has unsupported dtype.
+
+        Example:
+            >>> import torch
+            >>> import gdel3d_cuda
+            >>> pts = torch.rand(1000, 3, dtype=torch.float64, device='cuda') * 10.0
+            >>> tets = gdel3d_cuda.tetrahedralize_cuda(pts)
+            >>> print(tets.shape)  # torch.Size([M, 4])
+        )pbdoc",
+        py::arg("points")
+    );
 }
