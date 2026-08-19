@@ -74,8 +74,11 @@ GpuDel::~GpuDel()
 
 void GpuDel::compute( const Point3HVec& pointVec, GDelOutput *output )
 {
-    // Set L1 for kernels
-    CudaSafeCall( cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 ) );
+    // Set L1 for kernels (graceful check for modern CUDA architectures like Blackwell)
+    cudaError_t cacheErr = cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
+    if ( cacheErr != cudaSuccess ) {
+        cudaGetLastError(); // Clear error state on modern architectures
+    }
 
     _output = output;
     _output->stats.reset(); 
