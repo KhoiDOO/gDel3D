@@ -1,6 +1,6 @@
 # gDel3D: GPU-Accelerated 3D Delaunay Triangulation
 
-A refactored, modernized repository of **gDel3D** optimized for recent CUDA architectures (sm_70 through sm_90+), equipped with high-performance PyTorch C++ CUDA extension bindings.
+A refactored, modernized repository of **gDel3D** optimized for recent CUDA architectures (sm_70 through sm_120+ including NVIDIA Blackwell), equipped with high-performance PyTorch C++ CUDA extension bindings.
 
 Original repository: https://github.com/ashwin/gDel3D
 
@@ -11,8 +11,8 @@ Ensure you have a modern C++ host compiler, an NVIDIA CUDA Toolchain (e.g., CUDA
 
 ```bash
 # Optional: Create a dedicated Conda environment with compatible CUDA compilers
-conda create -c conda-forge -n geocutool python=3.10 gxx_linux-64=13 gcc_linux-64=13 -y
-conda activate geocutool
+conda create -c conda-forge -n gdel3d python=3.10 gxx_linux-64=13 gcc_linux-64=13 -y
+conda activate gdel3d
 conda install nvidia::cuda-toolkit==12.8.2 -y
 
 # Install PyTorch with CUDA support
@@ -71,4 +71,4 @@ This program constructs the Delaunay Triangulation of a set of arbitrary points 
 ### Original Authors
 - **Cao Thanh Tung**
 - **Ashwin Nanjappa**
-- For further internal structural details on input/output definitions, refer to [CommonTypes.h](file:///home/koi/Documents/git/gDel3D/GDelFlipping/src/gDel3D/CommonTypes.h) and [GpuDelaunay.h](file:///home/koi/Documents/git/gDel3D/GDelFlipping/src/gDel3D/GpuDelaunay.h).
+- For further internal structural details on input/output definitions, refer to [CommonTypes.h](GDelFlipping/src/gDel3D/CommonTypes.h) and [GpuDelaunay.h](GDelFlipping/src/gDel3D/GpuDelaunay.h).
